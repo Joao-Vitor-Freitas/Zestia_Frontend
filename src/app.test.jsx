@@ -10,11 +10,11 @@ const setup = async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   const user = userEvent.setup()
   render(<AppProvider><App /></AppProvider>)
-  expect(screen.queryByLabelText(/Atuando como/)).toBeNull() // seletor só aparece após carregar as organizações
+  expect(screen.queryByLabelText(/Atuando como/)).toBeNull()
   await screen.findByText(/Modo demonstração/)
   const sel = await screen.findByLabelText(/Atuando como/)
   const as = async n => { await user.selectOptions(sel, await within(sel).findByRole('option', { name: new RegExp(n) })); await waitFor(() => expect(sel.selectedOptions[0].textContent).toMatch(new RegExp(n))) }
-  const go = n => user.click(screen.getByRole('button', { name: n }))
+  const go = n => user.click(screen.getAllByRole('button', { name: n })[0])
   return { user, as, go }
 }
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
@@ -31,7 +31,7 @@ it('solicitar, aprovar e ver no painel; excluir alimento com pedido fica desabil
   await user.clear(qty); await user.type(qty, '10'); await send()
   expect(await screen.findByText('Solicitação enviada!')).toBeTruthy()
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-  await waitFor(() => expect(document.activeElement.getAttribute('aria-label')).toMatch(/Solicitar doação de Tomates/)) // foco volta ao botão
+  await waitFor(() => expect(document.activeElement.getAttribute('aria-label')).toMatch(/Solicitar doação de Tomates/))
   await go('Solicitações'); await user.click(await screen.findByRole('button', { name: 'Enviadas' }))
   expect(await screen.findByText('Pendente')).toBeTruthy()
   await as('Zaffari'); await go('Solicitações')
@@ -106,7 +106,7 @@ it('botão Atualizar traz solicitações feitas por outra organização', async 
 
 it('título da aba por tela, ErrorBoundary e quantidade enviada como número', async () => {
   const { user, go } = await setup()
-  await go('Painel'); await waitFor(() => expect(document.title).toMatch(/Painel/))
+  await go('Painel'); await waitFor(() => expect(document.title).toMatch(/Painel · Zestia/))
   const { default: ErrorBoundary } = await import('./components/ErrorBoundary')
   const Boom = () => { throw new Error('falha de teste') }
   render(<ErrorBoundary><Boom /></ErrorBoundary>)

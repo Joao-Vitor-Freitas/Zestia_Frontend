@@ -1,4 +1,3 @@
-// Camada de acesso a dados. Com VITE_API_URL usa a API real; sem ela, usa o mock (modo demonstração).
 import { mock } from './mock'
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
 export const DEMO = !BASE

@@ -1,4 +1,3 @@
-// Regras de negócio do backlog (RN-02 a RN-13) aplicadas pela API simulada.
 let m, zaf, ong, coz, tom
 const as = o => localStorage.setItem('orgId', o.id)
 const rej = (p, msg) => expect(p).rejects.toThrow(msg)
@@ -15,7 +14,7 @@ it('RN-07/08: bloqueia pedido do próprio alimento, quantidade zero e acima do d
   await rej(m('POST', '/requests', { foodId: tom.id, quantityKg: 0 }), /inválida/)
 })
 it('RN-07: bloqueia pedido de alimento vencido', async () => {
-  vi.resetModules(); localStorage.setItem('realimenta-mock', JSON.stringify({ orgs: [zaf, coz], foods: [{ ...tom, expirationDate: '2020-01-01' }], reqs: [] }))
+  vi.resetModules(); localStorage.setItem('zestia-mock', JSON.stringify({ orgs: [zaf, coz], foods: [{ ...tom, expirationDate: '2020-01-01' }], reqs: [] }))
   ;({ mock: m } = await import('./mock')); as(coz)
   await rej(m('POST', '/requests', { foodId: tom.id, quantityKg: 1 }), /vencido/)
 })
@@ -27,6 +26,7 @@ it('RN-08/10: pendentes não reservam; aprovações conflitantes nunca passam do
   await rej(m('POST', `/requests/${b.id}/approve`), /excede/)
   await rej(m('POST', `/requests/${a.id}/approve`), /já processada/)
   expect((await m('POST', `/requests/${b.id}/reject`)).status).toBe('REJECTED')
+  await rej(m('POST', `/requests/${b.id}/reject`), /já processada/)
   expect((await m('GET', '/foods'))[0].availableKg).toBe(25)
 })
 it('RN-09: só o doador aprova ou rejeita', async () => {
@@ -42,11 +42,12 @@ it('RN-05/06: só o dono edita; alimento com pedido não exclui nem baixa abaixo
   await rej(m('DELETE', `/foods/${tom.id}`), /solicitações/)
   expect((await m('GET', '/foods'))[0].hasRequests).toBe(true)
 })
-it('RN-01/02/04: validações de cadastro e exclusão de organização', async () => {
+it('RN-01/02/04: validações de cadastro, edição e exclusão de organização', async () => {
   await rej(m('POST', '/organizations', { name: '', type: 'NGO' }), /obrigat|Informe/)
   await rej(m('DELETE', `/organizations/${zaf.id}`), /não pode ser excluída/)
   as(zaf)
   await rej(m('POST', '/foods', { name: 'Leite', category: 'Laticínios', quantityKg: 5, expirationDate: '2020-01-01' }), /vencido/)
+  await rej(m('PUT', `/foods/${tom.id}`, { name: 'Tomates', category: 'Hortifrúti', quantityKg: 35, expirationDate: '2020-01-01' }), /vencido/)
   await rej(m('PUT', '/foods/xxx', { name: 'a', category: 'b', quantityKg: 1, expirationDate: '2030-01-01' }), /não encontrado/)
 })
 it('RN-12/13: métricas calculadas dos registros e sem erro de ponto flutuante', async () => {
