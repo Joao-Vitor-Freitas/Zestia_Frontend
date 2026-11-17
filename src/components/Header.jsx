@@ -6,11 +6,11 @@ export default function Header({ pages, page, setPage }) {
     <header>
       <div className="bar">
         <span className="brand">ReAlimenta</span>
-        <label className="row"><span>Atuando como:</span>
+        {orgs.length > 0 && <label className="row rounded-xl border border-line bg-slate-50 px-3"><span>Atuando como:</span>
           <select value={orgId} onChange={e => choose(e.target.value)}>
             {orgs.map(o => <option key={o.id} value={o.id}>{o.name} ({TYPES[o.type]})</option>)}
           </select>
-        </label>
+        </label>}
       </div>
       <div className="bar">
         <nav aria-label="Principal">

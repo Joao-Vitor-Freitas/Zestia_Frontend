@@ -6,6 +6,7 @@ import { STATUS } from '../constants'
 import AsyncView from '../components/AsyncView'
 import MetricCard from '../components/MetricCard'
 import Field from '../components/Field'
+import Button from '../components/Button'
 
 export default function Dashboard() {
   const { orgs } = useApp()
@@ -25,8 +26,9 @@ export default function Dashboard() {
         <Field as="select" label="Status da solicitação" value={s} onChange={e => setS(e.target.value)}>
           <option value="">Todos</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </Field>
+        <Button variant="sec" aria-label="Atualizar indicadores" onClick={reload}>Atualizar</Button>
       </div>
-      <AsyncView loading={loading} error={error} onRetry={reload}>
+      <AsyncView data={data} loading={loading} error={error} onRetry={reload}>
         <div className="grid">{m?.map(([l, v]) => <MetricCard key={l} label={l} value={v} />)}</div>
         <p>Valores calculados a partir dos registros. “Aprovado” não significa entregue ou consumido.</p>
       </AsyncView>
