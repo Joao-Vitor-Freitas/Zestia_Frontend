@@ -22,7 +22,7 @@ export default function Donate({ go, param }) {
     ? { id: param.id, name: param.name, category: param.category, quantityKg: String(param.quantityKg), expirationDate: param.expirationDate }
     : EMPTY)
   const [err, setErr] = useState({})
-  const ref = useRef(), pid = useId()
+  const ref = useRef(), pid = useId(), formId = useId()
   const today = new Date().toLocaleDateString('sv')
   const set = k => e => setForm({ ...form, [k]: e.target.value })
   const cats = form.category && !CATEGORIES.includes(form.category) ? [...CATEGORIES, form.category] : CATEGORIES
@@ -52,9 +52,15 @@ export default function Donate({ go, param }) {
   return (
     <>
       <PageHeader title={editing ? 'Editar lote' : 'Nova doação'}
-        sub={editing ? 'Ajuste os dados do lote. A quantidade não pode ficar abaixo do que já foi aprovado.' : 'Leva cerca de 1 minuto. As organizações da rede veem o lote assim que ele é publicado.'} />
+        sub={editing ? 'Ajuste os dados do lote. A quantidade não pode ficar abaixo do que já foi aprovado.' : 'Leva cerca de 1 minuto. As organizações da rede veem o lote assim que ele é publicado.'}
+        actions={ // guia (desktop): ações no topo; no celular ficam no fim do formulário
+          <div className="hidden gap-3 md:flex">
+            <Button variant="sec" onClick={() => go('foods')}>Cancelar</Button>
+            <Button type="submit" form={formId} disabled={busy}>{editing ? 'Salvar alterações' : 'Publicar doação'}</Button>
+          </div>
+        } />
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <form ref={ref} onSubmit={save} noValidate aria-label="Dados da doação" className="card grid gap-5 md:p-6">
+        <form id={formId} ref={ref} onSubmit={save} noValidate aria-label="Dados da doação" className="card grid gap-5 md:p-6">
           <Field label="O que está doando?" placeholder="Ex.: Hortifrúti variado" autoComplete="off" required value={form.name} onChange={set('name')} error={err.name} />
           <div className="grid gap-5 sm:grid-cols-2">
             <Field as="select" label="Categoria" required value={form.category} onChange={set('category')} error={err.category}>
@@ -67,14 +73,14 @@ export default function Donate({ go, param }) {
               hint="O selo de urgência é calculado automaticamente." />
             <div aria-live="polite">{preview.expirationDate && <ExpirySeal date={preview.expirationDate} />}</div>
           </div>
-          <div className="flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:justify-end md:hidden">
             <Button variant="sec" onClick={() => go('foods')}>Cancelar</Button>
             <Button type="submit" disabled={busy}>{editing ? 'Salvar alterações' : 'Publicar doação'}</Button>
           </div>
         </form>
 
         <aside aria-labelledby={pid} className="grid gap-3 lg:sticky lg:top-6">
-          <h2 id={pid} className="eyebrow">Prévia no feed</h2>
+          <h2 id={pid} className="eyebrow">Prévia no feed das ONGs</h2>
           {/* duplicata visual do formulário: oculta para leitores de tela */}
           <div aria-hidden="true"><FoodCard food={preview} type={org?.type} as="p" /></div>
           <p className="info"><Icon name="bell" size={18} className="mt-0.5" />Ao publicar, as organizações da rede veem o lote em “Explorar doações”, com os que vencem antes no topo.</p>

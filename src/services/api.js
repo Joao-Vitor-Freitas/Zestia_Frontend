@@ -1,8 +1,6 @@
-// Camada de acesso a dados. Com VITE_API_URL usa a API real (zestia-api); sem ela, usa o mock (modo demonstração).
-// Responsabilidades: prefixo da URL, token de login, conversão camelCase <-> snake_case e tradução dos erros.
-import { mock } from './mock'
+// Camada de acesso a dados da zestia-api (VITE_API_URL, ex.: http://localhost:8001/api/v1).
+// Responsabilidades: token de login, conversão camelCase <-> snake_case e tradução dos erros.
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
-export const DEMO = !BASE
 
 // --- Sessão (token JWT) ---------------------------------------------------
 const TOKEN_KEY = 'token'
@@ -12,9 +10,6 @@ export const getToken = () => token
 export const setToken = t => { token = t || ''; t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY) }
 /** Chamado quando a API responde 401 (token expirado/inválido), para a tela voltar ao login. */
 export const setUnauthorizedHandler = fn => { onUnauthorized = fn }
-
-// Mantido para o modo demonstração (o mock identifica a organização pelo localStorage).
-export const setOrg = () => {}
 
 // --- Conversão de nomes ------------------------------------------------------
 const camel = s => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
@@ -63,7 +58,14 @@ const MESSAGES = {
   admin_required: 'Ação permitida somente ao administrador.',
   self_review: 'O administrador não pode revisar a própria organização.',
   invalid_evidence: 'A comprovação deve ter de 20 a 1000 caracteres.',
-  data_conflict: 'Operação em conflito com dados existentes (registro em uso).',
+  evidence_required: 'A organização ainda não enviou a comprovação.',
+  invalid_review_transition: 'Essa mudança de situação não é permitida.',
+  review_unavailable: 'A organização já está verificada ou suspensa.',
+  invalid_reason: 'Informe o motivo da decisão (até 1000 caracteres).',
+  invalid_food: 'Dados do lote inválidos: confira nome e categoria.',
+  invalid_organization: 'Dados da organização inválidos: confira nome e localização.',
+  invalid_organization_type: 'Tipo de organização inválido.',
+  data_conflict: 'Não foi possível concluir: o registro está em uso (por exemplo, tem alimentos ou requisições ligados a ele).',
   database_unavailable: 'Banco de dados indisponível. Tente novamente em instantes.',
   validation_error: 'Dados inválidos. Confira os campos.',
 }
@@ -78,6 +80,7 @@ async function http(method, path, body) {
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
   let r
+  if (!BASE) throw new Error('API não configurada: defina VITE_API_URL no arquivo .env do frontend.')
   try {
     r = await fetch(BASE + toApiPath(path), { method, headers, body: body && JSON.stringify(toApi(body)) })
   } catch {
@@ -93,5 +96,4 @@ async function http(method, path, body) {
   return r.status === 204 || r.status === 202 ? null : fromApi(await r.json())
 }
 
-const call = (m, p, b) => (BASE ? http(m, p, b) : mock(m, p, b))
-export const api = { get: p => call('GET', p), post: (p, b) => call('POST', p, b), put: (p, b) => call('PUT', p, b), del: p => call('DELETE', p) }
+export const api = { get: p => http('GET', p), post: (p, b) => http('POST', p, b), put: (p, b) => http('PUT', p, b), del: p => http('DELETE', p) }

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEMO } from './services/api'
 import { useApp } from './context'
 import Sidebar from './components/Sidebar'
 import Toast from './components/Toast'
-import Icon from './components/Icon'
 import ErrorBoundary from './components/ErrorBoundary'
 import Offers from './pages/Offers'
 import MyFoods from './pages/MyFoods'
@@ -12,24 +10,45 @@ import Approvals from './pages/Approvals'
 import MyRequests from './pages/MyRequests'
 import Dashboard from './pages/Dashboard'
 import Organizations from './pages/Organizations'
+import Login from './pages/Login'
+import OrgSetup from './pages/OrgSetup'
+import Receipt from './pages/Receipt'
+import Verification from './pages/Verification'
+import VerificationBanner from './components/VerificationBanner'
 
 // A ordem define a navegação. "cta" = botão de destaque (zest); "sec" = grupo Gestão.
-const pages = {
-  offers: { label: 'Explorar doações', icon: 'compass', C: Offers },
-  foods: { label: 'Meus lotes', icon: 'box', C: MyFoods },
-  new: { label: 'Nova doação', icon: 'plus', C: Donate, cta: true },
-  approvals: { label: 'Aprovações', icon: 'check', C: Approvals },
-  sent: { label: 'Minhas requisições', icon: 'clipboard', C: MyRequests },
+// org = exige organização própria; admin = só para a conta administradora.
+const ALL_PAGES = {
+  offers: { label: 'Explorar doações', icon: 'compass', C: Offers, org: true },
+  foods: { label: 'Meus lotes', icon: 'box', C: MyFoods, org: true },
+  new: { label: 'Nova doação', icon: 'plus', C: Donate, cta: true, org: true },
+  approvals: { label: 'Aprovações', icon: 'check', C: Approvals, org: true },
+  sent: { label: 'Minhas requisições', icon: 'clipboard', C: MyRequests, org: true },
+  verify: { label: 'Verificação', icon: 'shield', C: Verification, sec: true, admin: true },
   dashboard: { label: 'Painel', icon: 'chart', C: Dashboard, sec: true },
   orgs: { label: 'Organizações', icon: 'users', C: Organizations, sec: true },
+  receipt: { label: 'Comprovante de retirada', C: Receipt, hidden: true, parent: 'sent', org: true }, // fora do menu
+}
+const pagesFor = (isAdmin, hasOrg) =>
+  Object.fromEntries(Object.entries(ALL_PAGES).filter(([, p]) => (!p.admin || isAdmin) && (!p.org || hasOrg)))
+
+// Porteiro: carregando -> login -> cadastro da organização -> aplicação.
+// O administrador pode entrar sem organização (só Verificação, Painel e Organizações).
+export default function App() {
+  const { account, org, ready } = useApp()
+  if (!ready) return <p className="load" role="status">Carregando…</p>
+  if (!account) return <><Login /><Toast /></>
+  if (!org && account.role !== 'ADMIN') return <><OrgSetup /><Toast /></>
+  return <Shell key={`${account.id}-${org?.id || ''}`} />
 }
 
-export default function App() {
-  const [route, setRoute] = useState({ page: 'offers' })
+function Shell() {
+  const { orgId, org, account } = useApp()
+  const pages = pagesFor(account.role === 'ADMIN', !!org)
+  const [route, setRoute] = useState({ page: org ? 'offers' : 'verify' })
   const go = (page, param) => setRoute({ page, param })
-  const { org, orgId, ready } = useApp()
-  const { C } = pages[route.page]
-  const title = route.page === 'new' && route.param ? 'Editar lote' : pages[route.page].label
+  const { C } = pages[route.page] || pages[Object.keys(pages)[0]]
+  const title = route.page === 'new' && route.param ? 'Editar lote' : (pages[route.page] || ALL_PAGES[route.page]).label
   useEffect(() => { document.title = `${title} · Zestia` }, [title])
   const first = useRef(true)
   useEffect(() => { // ao trocar de tela, leva o foco ao título (leitores de tela anunciam a mudança)
@@ -43,17 +62,9 @@ export default function App() {
       <a className="skip" href="#main">Pular para o conteúdo</a>
       <Sidebar pages={pages} route={route} go={go} />
       <div className="md:pl-64">
-        {DEMO && <p role="note" className="demo"><Icon name="info" size={16} />Modo demonstração: os dados ficam salvos só neste navegador. Defina VITE_API_URL para usar a API real.</p>}
         <main id="main" tabIndex={-1} className="page">
-          {!ready ? <p className="load" role="status">Carregando…</p>
-            : org || route.page === 'orgs' ? <ErrorBoundary key={`${route.page}-${orgId}-${route.param?.id || ''}`}><C go={go} param={route.param} /></ErrorBoundary>
-              : (
-                <div className="empty">
-                  <h1 className="text-[22px] leading-7 md:text-[22px]">Boas-vindas à Zestia</h1>
-                  <p className="mt-2">Cadastre uma organização para começar.</p>
-                  <button type="button" className="btn mt-4" onClick={() => go('orgs')}>Ir para Organizações</button>
-                </div>
-              )}
+          <VerificationBanner />
+          <ErrorBoundary key={`${route.page}-${orgId}-${route.param?.id || ''}`}><C go={go} param={route.param} /></ErrorBoundary>
         </main>
       </div>
       <Toast />

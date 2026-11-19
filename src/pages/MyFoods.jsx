@@ -1,4 +1,5 @@
 import { api } from '../services/api'
+import { loadNetwork } from '../services/data'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
 import { useBusy } from '../hooks/useBusy'
@@ -13,10 +14,11 @@ import { StatusBadge } from '../components/Badges'
 const lotStatus = f => expiry(f.expirationDate).expired ? ['DONE', 'Vencido'] : f.availableKg <= 0 ? ['DONE', 'Esgotado'] : ['AVAILABLE', 'Disponível']
 
 export default function MyFoods({ go }) {
-  const { org, orgId, notify } = useApp()
+  const { org, orgId, orgs, notify } = useApp()
   const [busy, run] = useBusy()
-  const { data, loading, error, reload } = useAsync(() => api.get('/foods'), [orgId])
-  const mine = (data || []).filter(f => f.donorOrganizationId === orgId).sort((a, b) => a.expirationDate.localeCompare(b.expirationDate))
+  // loadNetwork traz as requisições junto: necessárias para saldo e "Com requisições"
+  const { data, loading, error, reload } = useAsync(() => loadNetwork(orgs), [orgId, orgs])
+  const mine = (data?.[0] || []).filter(f => f.donorOrganizationId === orgId).sort((a, b) => a.expirationDate.localeCompare(b.expirationDate))
   const remove = async f => {
     if (!confirm(`Excluir o lote "${f.name}"?`)) return
     await run(async () => { try { await api.del(`/foods/${f.id}`); notify('Lote excluído.'); reload() } catch (x) { notify(x.message, 'error') } })
