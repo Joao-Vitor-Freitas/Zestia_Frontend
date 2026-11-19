@@ -1,9 +1,10 @@
 import { useId, useState } from 'react'
 import { api } from '../services/api'
+import { loadNetwork } from '../services/data'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
 import { useBusy } from '../hooks/useBusy'
-import { fmtKg, timeAgo } from '../format'
+import { expiry, fmtKg, timeAgo } from '../format'
 import AsyncView from '../components/AsyncView'
 import PageHeader from '../components/PageHeader'
 import Button from '../components/Button'
@@ -11,7 +12,9 @@ import Icon from '../components/Icon'
 import { Thumb } from '../components/FoodCard'
 import { Avatar, ExpirySeal, StatusBadge } from '../components/Badges'
 
-const pendingFirst = (a, b) => (a.status !== 'PENDING') - (b.status !== 'PENDING') || (a.createdAt || '').localeCompare(b.createdAt || '')
+// Status do lote (guia): Aguardando aprovação > Aprovado para retirada > Disponível
+const lotStatus = l => l.pending ? 'PENDING' : l.reqs.some(r => r.status === 'APPROVED') ? 'APPROVED' : 'AVAILABLE'
+const pendingFirst =(a, b) => (a.status !== 'PENDING') - (b.status !== 'PENDING') || (a.createdAt || '').localeCompare(b.createdAt || '')
 
 // Requisições recebidas, agrupadas por lote (guia: p. 4 e 9).
 export default function Approvals() {
@@ -19,13 +22,14 @@ export default function Approvals() {
   const [busy, run] = useBusy()
   const [selId, setSel] = useState(null)
   const ids = useId()
-  const { data, loading, error, reload } = useAsync(() => Promise.all([api.get('/foods'), api.get('/requests')]), [orgId])
+  const { data, loading, error, reload } = useAsync(() => loadNetwork(orgs), [orgId, orgs])
   const [foods, reqs] = data || [[], []]
   const received = reqs.filter(r => r.donorOrganizationId === orgId)
+  // "Seus lotes ativos" (guia p. 9): lotes dentro da validade, mais os vencidos que ainda têm pedidos.
   const lots = foods.filter(f => f.donorOrganizationId === orgId)
     .map(f => { const rs = received.filter(r => r.foodId === f.id).sort(pendingFirst); return { ...f, reqs: rs, pending: rs.filter(r => r.status === 'PENDING').length } })
-    .filter(l => l.reqs.length)
-    .sort((a, b) => b.pending - a.pending || a.expirationDate.localeCompare(b.expirationDate))
+    .filter(l => l.reqs.length || !expiry(l.expirationDate).expired)
+    .sort((a, b) => b.pending - a.pending || b.reqs.length - a.reqs.length || a.expirationDate.localeCompare(b.expirationDate))
   const cur = lots.find(l => l.id === selId) || lots[0]
   const typeOf = id => orgs.find(o => o.id === id)?.type
 
@@ -40,11 +44,11 @@ export default function Approvals() {
     <>
       <PageHeader title="Aprovações" sub="Revise quem pediu cada lote. A quantidade só sai do saldo depois da sua aprovação."
         actions={<Button variant="sec" aria-label="Atualizar lista" onClick={reload}><Icon name="refresh" size={18} />Atualizar</Button>} />
-      <AsyncView data={data} loading={loading} error={error} onRetry={reload} empty={!lots.length} emptyText="Nenhuma requisição recebida por aqui.">
+      <AsyncView data={data} loading={loading} error={error} onRetry={reload} empty={!lots.length} emptyText="Você não tem lotes ativos. Publique uma doação para receber pedidos.">
         {cur && (
           <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
             <section aria-labelledby={`${ids}l`}>
-              <h2 id={`${ids}l`} className="eyebrow mb-3">Seus lotes com pedidos</h2>
+              <h2 id={`${ids}l`} className="eyebrow mb-3">Seus lotes ativos</h2>
               <ul className="grid gap-3">
                 {lots.map(l => (
                   <li key={l.id}>
@@ -55,7 +59,7 @@ export default function Approvals() {
                       </span>
                       <span className="mt-2 flex flex-wrap gap-1.5">
                         <ExpirySeal date={l.expirationDate} />
-                        {l.pending ? <StatusBadge status="PENDING" /> : <StatusBadge status="DONE">Sem pendências</StatusBadge>}
+                        <StatusBadge status={lotStatus(l)}>{lotStatus(l) === 'AVAILABLE' ? 'Disponível' : undefined}</StatusBadge>
                       </span>
                     </button>
                   </li>
@@ -73,9 +77,10 @@ export default function Approvals() {
                 <ExpirySeal date={cur.expirationDate} />
               </div>
               <div className="mb-3 mt-6 flex flex-wrap items-baseline justify-between gap-2">
-                <h3>{cur.reqs.length} {cur.reqs.length === 1 ? 'organização pediu' : 'organizações pediram'} este lote</h3>
-                <p className="text-sm text-muted">Pendentes primeiro, por ordem de chegada</p>
+                <h3>{cur.reqs.length ? `${cur.reqs.length} ${cur.reqs.length === 1 ? 'organização pediu' : 'organizações pediram'} este lote` : 'Nenhum pedido para este lote ainda'}</h3>
+                {cur.reqs.length > 0 && <p className="text-sm text-muted">Pendentes primeiro, por ordem de chegada</p>}
               </div>
+              {!cur.reqs.length && <p className="empty">Quando uma organização requisitar este lote, o pedido aparece aqui para você aprovar ou recusar.</p>}
               <ul className="grid gap-3">
                 {cur.reqs.map(r => {
                   const what = `${fmtKg(r.quantityKg)} de ${cur.name} para ${r.recipientName}`
