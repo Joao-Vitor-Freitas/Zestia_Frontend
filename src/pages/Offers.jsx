@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { api } from '../services/api'
+import { loadNetwork } from '../services/data'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
 import { useBusy } from '../hooks/useBusy'
@@ -12,8 +13,9 @@ import Button from '../components/Button'
 import Modal from '../components/Modal'
 import Icon from '../components/Icon'
 import { ExpirySeal } from '../components/Badges'
+import NotificationBell from '../components/NotificationBell'
 
-const FILTERS = [['all', 'Todos'], ['urgent', 'Urgentes (< 24h)'], ['market', 'De mercados'], ['ngo', 'De ONGs e cozinhas']]
+const FILTERS = [['all', 'Todos'], ['urgent', 'Urgentes (< 24h)'], ['market', 'De mercados'], ['ngo', 'De outras ONGs']]
 
 export default function Offers({ go }) {
   const { orgs, orgId, notify } = useApp()
@@ -22,7 +24,7 @@ export default function Offers({ go }) {
   const [sel, setSel] = useState(null), [qty, setQty] = useState(''), [err, setErr] = useState('')
   const [dismissed, setDismissed] = useState(null)
   const sid = useId(), lid = useId()
-  const { data, loading, error, reload } = useAsync(() => Promise.all([api.get('/foods'), api.get('/requests')]), [orgId])
+  const { data, loading, error, reload } = useAsync(() => loadNetwork(orgs), [orgId, orgs])
   const [foods, reqs] = data || [[], []]
   const typeOf = id => orgs.find(o => o.id === id)?.type
 
@@ -58,14 +60,15 @@ export default function Offers({ go }) {
     <>
       <PageHeader
         title="Oportunidades de doação"
-        sub={data ? `${avail.length} ${avail.length === 1 ? 'lote aberto' : 'lotes abertos'} na rede · os que vencem antes aparecem primeiro` : 'Lotes disponíveis na rede'}
-        actions={
-          <form role="search" className="relative w-full sm:w-80" onSubmit={e => e.preventDefault()}>
+        sub={data ? `${avail.length} ${avail.length === 1 ? 'lote aberto' : 'lotes abertos'} na rede · atualizado agora` : 'Lotes disponíveis na rede'}
+        actions={<>
+          <form role="search" className="relative min-w-0 flex-1 sm:w-80 sm:flex-none" onSubmit={e => e.preventDefault()}>
             <label htmlFor={sid} className="sr-only">Buscar alimento ou doador</label>
             <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input id={sid} type="search" className="pl-11" placeholder="Buscar alimento ou doador" value={q} onChange={e => setQ(e.target.value)} />
           </form>
-        }
+          <NotificationBell go={go} />
+        </>}
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -73,9 +76,9 @@ export default function Offers({ go }) {
           <aside aria-labelledby={`${lid}b`} className="flex items-start gap-3 rounded-2xl bg-zest p-4 text-ink xl:sticky xl:top-6 xl:order-2">
             <Icon name="check" className="mt-0.5" />
             <div className="min-w-0 flex-1">
-              <h2 id={`${lid}b`} className="font-sans text-base font-bold leading-6">Requisição aprovada!</h2>
+              <h2 id={`${lid}b`} className="font-sans text-base font-bold leading-6">Requisição aprovada</h2>
               <p className="text-sm">{approved.donorName} liberou {fmtKg(approved.quantityKg)} de {approved.foodName}.</p>
-              <button type="button" className="mt-2 cursor-pointer text-sm font-bold underline underline-offset-2" onClick={() => go('sent')}>Ver minhas requisições</button>
+              <button type="button" className="mt-2 cursor-pointer text-sm font-bold underline underline-offset-2" onClick={() => go('receipt', { id: approved.id })}>Ver comprovante</button>
             </div>
             <button type="button" className="icon-btn -m-2" aria-label="Dispensar aviso" onClick={() => setDismissed(approved.id)}><Icon name="x" size={18} /></button>
           </aside>
@@ -123,7 +126,7 @@ export default function Offers({ go }) {
           </dl>
           <form onSubmit={submit} noValidate className="grid gap-5">
             <Field label="Quantidade desejada (kg)" type="number" inputMode="decimal" min="0" step="0.1" required
-              hint={`Até ${fmtKg(sel.availableKg)}. O doador revisa o pedido antes de liberar a retirada.`}
+              hint={`Até ${fmtKg(sel.availableKg)} (saldo estimado; se outra organização já tiver sido aprovada, o sistema avisa). O doador revisa o pedido antes de liberar a retirada.`}
               value={qty} onChange={e => setQty(e.target.value)} error={err} />
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button variant="sec" onClick={() => setSel(null)}>Cancelar</Button>

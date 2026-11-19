@@ -1,20 +1,21 @@
 import { useApp } from '../context'
-import { api } from '../services/api'
+import { getAll } from '../services/data'
 import { useAsync } from '../hooks/useAsync'
-import { TYPES } from '../constants'
+import { TYPES, VERIFICATION } from '../constants'
 import Icon from './Icon'
 import { Avatar } from './Badges'
 
 // Desktop: barra lateral fixa. Celular: topo (marca, gestão, organização) + navegação principal fixa embaixo.
 // Um único DOM para os dois tamanhos: sem controles duplicados para leitores de tela.
 export default function Sidebar({ pages, route, go }) {
-  const { orgs, orgId, org, choose, msg } = useApp()
+  const { account, orgId, org, logout, msg } = useApp()
+  const verified = org?.verificationStatus === 'VERIFIED'
   // contador de aprovações pendentes: recarrega ao trocar de tela/organização e após cada ação (msg)
-  const { data } = useAsync(() => (orgId ? api.get('/requests') : Promise.resolve([])), [orgId, route, msg])
+  const { data } = useAsync(() => (orgId ? getAll('/requests?status=PENDING') : Promise.resolve([])), [orgId, route, msg])
   const pending = (data || []).filter(r => r.donorOrganizationId === orgId && r.status === 'PENDING').length
 
   const item = ([k, p]) => {
-    const current = route.page === k && !(k === 'new' && route.param)
+    const current = (route.page === k || pages[route.page]?.parent === k) && !(k === 'new' && route.param)
     return (
       <li key={k} className={p.cta ? 'nav-cta-li' : undefined}>
         <button type="button" className={p.cta ? 'nav-cta' : 'nav-item'} aria-current={current ? 'page' : undefined} onClick={() => go(k)}>
@@ -27,31 +28,38 @@ export default function Sidebar({ pages, route, go }) {
       </li>
     )
   }
-  const entries = Object.entries(pages)
+  const entries = Object.entries(pages).filter(([, p]) => !p.hidden)
+  const mainEntries = entries.filter(([, p]) => !p.sec)
+  const isAdmin = account?.role === 'ADMIN'
 
   return (
     <header className="shell">
       <p className="brand"><span className="logo"><Icon name="leaf" /></span>zestia</p>
-      <nav aria-label="Principal" className="nav-main"><ul>{entries.filter(([, p]) => !p.sec).map(item)}</ul></nav>
+      {/* o administrador sem organização não tem a navegação principal (evita barra inferior vazia) */}
+      {mainEntries.length > 0 && <nav aria-label="Principal" className="nav-main"><ul>{mainEntries.map(item)}</ul></nav>}
       <nav aria-labelledby="nav-sec-t" className="nav-sec">
         <p id="nav-sec-t" className="nav-sec-title eyebrow">Gestão</p>
         <ul>{entries.filter(([, p]) => p.sec).map(item)}</ul>
       </nav>
-      {orgs.length > 0 && (
-        <div className="org-card">
-          <div className="mb-3 hidden items-center gap-3 md:flex">
-            <Avatar name={org?.name} type={org?.type} className="h-10 w-10 text-sm" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{org?.name}</p>
-              <p className="text-xs text-muted">{TYPES[org?.type]}</p>
+      <div className="org-card">
+        {org ? (
+          <>
+            <div className="mb-3 hidden items-center gap-3 md:flex">
+              <Avatar name={org.name} type={org.type} className="h-10 w-10 text-sm" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{org.name}</p>
+                <p className="text-xs text-muted">{TYPES[org.type]}</p>
+              </div>
             </div>
-          </div>
-          <label htmlFor="org-switch" className="block text-xs font-semibold text-muted">Atuando como</label>
-          <select id="org-switch" className="mt-1 min-h-11 text-sm" value={orgId} onChange={e => choose(e.target.value)}>
-            {orgs.map(o => <option key={o.id} value={o.id}>{o.name} ({TYPES[o.type]})</option>)}
-          </select>
-        </div>
-      )}
+            <p className={`status status-${verified ? 'AVAILABLE' : org.verificationStatus === 'PENDING' ? 'PENDING' : 'REJECTED'}`}>
+              <Icon name={verified ? 'check' : 'clock'} size={14} />{VERIFICATION[org.verificationStatus] || org.verificationStatus}
+            </p>
+          </>
+        ) : <p className="text-sm font-semibold">Conta sem organização</p>}
+        {isAdmin && <p className="status status-APPROVED mt-2"><Icon name="shield" size={14} />Administrador</p>}
+        <p className="mt-2 hidden truncate text-xs text-muted md:block" title={account?.email}>{account?.email}</p>
+        <button type="button" className="btn sec mt-2 w-full" onClick={logout}><Icon name="logout" size={18} />Sair</button>
+      </div>
     </header>
   )
 }

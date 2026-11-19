@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { api } from '../services/api'
+import { loadMetrics } from '../services/data'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
 import { STATUS } from '../constants'
@@ -15,7 +15,7 @@ export default function Dashboard() {
   const { orgs } = useApp()
   const [o, setO] = useState(''), [s, setS] = useState('')
   const ids = useId()
-  const { data, loading, error, reload } = useAsync(() => api.get(`/metrics?organizationId=${o}&status=${s}`), [o, s])
+  const { data, loading, error, reload } = useAsync(() => loadMetrics(o, s), [o, s])
   const groups = data && [
     ['Alimentos', [['Alimento registrado (kg)', data.registeredKg], ['Alimento solicitado (kg)', data.requestedKg], ['Alimento aprovado (kg)', data.approvedKg]]],
     ['Requisições', [['Requisições pendentes', data.pending], ['Requisições aprovadas', data.approved], ['Requisições recusadas', data.rejected]]],

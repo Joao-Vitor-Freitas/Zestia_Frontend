@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { api } from '../services/api'
+import { loadNetwork } from '../services/data'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
 import { byNewest, fmtDate, fmtKg } from '../format'
@@ -23,9 +23,9 @@ function Steps({ status }) {
 }
 
 export default function MyRequests({ go }) {
-  const { orgId } = useApp()
+  const { orgId, orgs } = useApp()
   const ids = useId()
-  const { data, loading, error, reload } = useAsync(() => Promise.all([api.get('/foods'), api.get('/requests')]), [orgId])
+  const { data, loading, error, reload } = useAsync(() => loadNetwork(orgs), [orgId, orgs])
   const [foods, reqs] = data || [[], []]
   const list = reqs.filter(r => r.recipientOrganizationId === orgId).sort(byNewest)
   const food = id => foods.find(f => f.id === id)
@@ -52,7 +52,12 @@ export default function MyRequests({ go }) {
                     </p>
                     {f && <div className="mt-2"><ExpirySeal date={f.expirationDate} /></div>}
                     <Steps status={r.status} />
-                    {r.status === 'APPROVED' && <p className="info mt-4"><Icon name="check" size={18} className="mt-0.5" />Aprovado! Combine a retirada com {r.donorName} antes do vencimento.</p>}
+                    {r.status === 'APPROVED' && (
+                      <div className="info mt-4 flex-wrap items-center justify-between">
+                        <p className="flex items-start gap-3"><Icon name="check" size={18} className="mt-0.5" />Aprovado! Retire com {r.donorName} antes do vencimento.</p>
+                        <Button aria-label={`Ver comprovante de ${r.foodName}`} onClick={() => go('receipt', { id: r.id })}>Ver comprovante</Button>
+                      </div>
+                    )}
                   </div>
                 </article>
               </li>
