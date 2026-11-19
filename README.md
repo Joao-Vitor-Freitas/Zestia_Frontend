@@ -1,4 +1,4 @@
-# ReAlimenta — Front-end
+# Zestia — Front-end
 
 Aplicação web que conecta organizações (supermercados, ONGs e cozinhas comunitárias) para doação e solicitação de alimentos.
 Projeto da **FIAP Global Solution 2026.2 — CitizenTech** (Grupo Orion).
@@ -11,7 +11,7 @@ Todos os tipos de organização podem **doar e receber**; o tipo descreve a inst
 |---|---|
 | Linguagem | JavaScript (ES2022) + JSX |
 | Interface | React 18 |
-| Estilo | Tailwind CSS 3 (tokens do design em `tailwind.config.js`), fonte Plus Jakarta Sans |
+| Estilo | Tailwind CSS 3 com os tokens do guia visual (`Zestia.pdf`) em `tailwind.config.js`; fontes Space Grotesk (títulos) e Inter (texto) |
 | Build | Vite 5 |
 | Testes | Vitest 2 + Testing Library + jsdom |
 | Estado | Context API (`src/context.jsx`) + hook `useAsync` |
@@ -56,9 +56,11 @@ Erros devem vir como `{ "detail": "mensagem" }` com o status HTTP adequado (400,
 
 ```
 src/
-  components/   Button, Field, StatusBadge, Alert, AsyncView, ExpiryGauge,
-                FoodCard, Modal, MetricCard, Header   (10 componentes reutilizáveis)
-  pages/        Offers, MyFoods, Requests, Organizations, Dashboard
+  components/   Sidebar (navegação), PageHeader, Button, Field, Badges (selo de validade,
+                origem, status, avatar), FoodCard, Modal, Toast, Alert, AsyncView, Icon, ErrorBoundary
+  pages/        Offers (Explorar doações), MyFoods (Meus lotes), Donate (Nova doação/edição),
+                Approvals (Aprovações), MyRequests (Minhas requisições), Dashboard, Organizations
+  format.js     formatação (kg, datas) e regra do selo de validade (< 24h, 24–72h, > 72h)
   services/     api.js (acesso a dados) e mock.js (API simulada com as RN)
   hooks/        useAsync.js (carregando / erro / dados, ignora respostas antigas)
   context.jsx   organização ativa, lista de organizações e avisos (toast)
@@ -70,10 +72,10 @@ Separação de responsabilidades (RNF-06): **apresentação** em `components/` e
 ## Requisitos atendidos
 
 - **RF-01 a RF-08** e **RN-01 a RN-13** do backlog (as RN são aplicadas também pela API simulada e cobertas por testes).
-- **RNF-01 Responsividade:** layout fluido; tabelas rolam dentro do próprio container.
-- **RNF-02 Acessibilidade:** HTML semântico, labels, contraste mínimo de 4,5:1 nos cards, navegação por teclado, foco visível, link "pular para o conteúdo", foco preso no modal e movido ao título ao trocar de tela.
+- **RNF-01 Responsividade:** barra lateral no desktop; no celular, topo + barra de navegação inferior com o botão “Nova doação”; tabelas rolam dentro do próprio container (focável pelo teclado).
+- **RNF-02 Acessibilidade:** landmarks (`header`, `nav` rotuladas, `main`, `aside`), hierarquia de títulos, listas e `article` nos cards; rótulos visíveis com dica e erro ligados por `aria-describedby` e foco no primeiro campo inválido; selos sempre com ícone + texto (nunca só cor); contraste AA nos selos e 3:1 nas bordas dos campos; alvos de toque ≥ 44 px; `aria-current` na navegação e `aria-pressed` nos filtros; regiões ao vivo fixas para avisos e contagem de resultados; foco preso no modal e movido ao título ao trocar de tela; respeita `prefers-reduced-motion`.
 - **RNF-05 Usabilidade:** validação nos formulários; estados de carregando (esqueleto), sucesso (aviso), erro (com "tentar novamente") e vazio; botões desabilitados durante o envio (sem cliques duplicados); botão "Atualizar" e recarga ao voltar para a janela; tela de erro amigável (`ErrorBoundary`).
-- **RNF-03:** 10 componentes reutilizáveis.
+- **RNF-03:** 13 componentes reutilizáveis.
 
 ## Limitações conhecidas
 
