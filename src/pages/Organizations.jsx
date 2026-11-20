@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { getAll } from '../services/data'
 import { api } from '../services/api'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
@@ -15,7 +16,7 @@ import { Avatar, OriginTag } from '../components/Badges'
 export default function Organizations() {
   const { notify, refreshOrg, orgId } = useApp()
   const [busy, run] = useBusy()
-  const { data, loading, error, reload } = useAsync(() => api.get('/organizations'), [])
+  const { data, loading, error, reload } = useAsync(() => getAll('/organizations'), [])
   const [form, setForm] = useState(null), [err, setErr] = useState({})
   const ref = useRef()
   const set = k => e => setForm({ ...form, [k]: e.target.value })
@@ -56,7 +57,7 @@ export default function Organizations() {
                   <td>
                     {o.id === orgId && (
                       <div className="flex justify-end gap-2">
-                        <Button variant="sec" aria-label={`Editar ${o.name}`} onClick={() => { setErr({}); setForm(o) }}>Editar</Button>
+                        <Button variant="sec" aria-label={`Editar ${o.name}`} onClick={async () => { try { setErr({}); setForm(await api.get(`/organizations/${o.id}`)) } catch (e) { notify(e.message, 'error') } }}>Editar</Button>
                         <Button variant="del" disabled={busy} aria-label={`Excluir ${o.name}`} onClick={() => remove(o)}>Excluir</Button>
                       </div>
                     )}

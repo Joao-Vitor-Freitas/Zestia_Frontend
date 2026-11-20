@@ -34,7 +34,7 @@ export default function Donate({ go, param }) {
     if (!form.category?.trim()) v.category = 'Escolha a categoria.'
     if (!(Number(form.quantityKg) > 0)) v.quantityKg = 'Quantidade deve ser maior que zero.'
     if (!form.expirationDate) v.expirationDate = 'Informe a validade.'
-    else if (!editing && form.expirationDate < today) v.expirationDate = 'A validade não pode estar no passado.'
+    else if (form.expirationDate < today) v.expirationDate = 'A validade não pode estar no passado.'
     setErr(v)
     if (Object.keys(v).length) return focusFirstInvalid(ref.current)
     const body = { name: form.name.trim(), category: form.category, quantityKg: Number(form.quantityKg), expirationDate: form.expirationDate }
@@ -66,7 +66,7 @@ export default function Donate({ go, param }) {
             <Field as="select" label="Categoria" required value={form.category} onChange={set('category')} error={err.category}>
               <option value="">Selecione</option>{cats.map(c => <option key={c} value={c}>{c}</option>)}
             </Field>
-            <Field label="Quantidade (kg)" type="number" inputMode="decimal" min="0" step="0.1" required placeholder="Ex.: 25" value={form.quantityKg} onChange={set('quantityKg')} error={err.quantityKg} />
+            <Field label="Quantidade (kg)" type="number" inputMode="decimal" min="0" step="0.001" required placeholder="Ex.: 25" value={form.quantityKg} onChange={set('quantityKg')} error={err.quantityKg} />
           </div>
           <div className="grid gap-2">
             <Field label="Validade" type="date" min={editing ? undefined : today} required value={form.expirationDate} onChange={set('expirationDate')} error={err.expirationDate}

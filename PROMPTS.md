@@ -13,4 +13,11 @@ Resumo dos principais pedidos feitos à IA (Claude) neste projeto.
 | 7 | Corrigir os bugs 1 a 8 e implementar os itens 1 a 4. | Contraste, selo de status, modo demonstração, esqueleto de carregamento e acessibilidade. |
 | 8 | Revisar bugs novamente e aplicar documentação, testes e correções. | README, AI.md, PROMPTS.md, INTEGRANTES.md, 11 testes e correções finais. |
 
-> _Preencher: acrescentar os prompts usados pelos demais integrantes._
+> Os demais integrantes devem acrescentar interações próprias que não estejam neste registro.
+
+## Codex — 19/11/2026
+
+Pedido: “o front esta implementando tudo oq preciso? se n faça implementar rapidinho,
+e ja valide com o todo tambem [...] garanta q front implemente toda a api”.
+Resultado: inspeção da versão puxada, conclusão das operações ausentes, endpoint de
+saldo agregado, testes de contrato/interface e validação do backend em banco descartável.

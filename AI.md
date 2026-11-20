@@ -10,13 +10,23 @@ Ferramenta utilizada: **Claude (Anthropic)**, por chat.
 - **Documentação:** rascunho do README.
 
 ## Decisões tomadas pelo grupo
-- Nome do projeto: **ReAlimenta**.
+- Nome oficial atual do projeto: **Zestia**.
 - Escopo do MVP e numeração das RN: as do `backlog.md`.
 - Itens do design fora do MVP foram removidos (monitoramento IoT, compatibilidade/cadeia de frio, logística, cota parcial).
 
 ## Como validamos o resultado da IA
 - Execução da suíte de testes (`npm test`) e do build (`npm run build`).
-- _Preencher: o que o grupo revisou, testou manualmente e alterou por conta própria._
+- A revisão manual do grupo em navegadores e dispositivos ainda precisa ser registrada; não foi inventada.
 
 ## Limitações observadas
 - O código gerado foi validado em ambiente de teste (jsdom); testes em navegadores reais, leitores de tela e dispositivos móveis devem ser feitos pelo grupo.
+
+## Atualização com Codex — 19/11/2026
+
+Codex/OpenAI foi usado para completar a integração da versão atual: recuperação,
+restauração/encerramento, métricas detalhadas, saldo do servidor, revisão de sessão,
+testes HTTP/interface e documentação. Os testes antigos ainda esperavam um mock removido
+pela versão remota; foram adaptados para o contrato real mantendo cenários de validação,
+propriedade, pedido, navegação e duplicidade, e acrescentando recuperação/restauração.
+Os testes simulam fetch; integridade concorrente é validada separadamente no PostgreSQL.
+Não há alegação de teste manual da equipe nem de aceitação real do SMTP.

@@ -1,84 +1,105 @@
-# Zestia — Front-end
+# Zestia — Frontend
 
-Aplicação web que conecta organizações (supermercados, ONGs e cozinhas comunitárias) para doação e solicitação de alimentos.
-Projeto da **FIAP Global Solution 2026.2 — CitizenTech** (Grupo Orion).
+CitizenTech da FIAP GS 2026.2, Grupo Orion. Organizações de Porto Alegre publicam alimentos,
+solicitam quantidades e aprovam/rejeitam pedidos. Todos os tipos podem doar e receber;
+participação exige verificação. Indicadores de aprovação não comprovam entrega.
 
-Todos os tipos de organização podem **doar e receber**; o tipo descreve a instituição, não suas permissões.
+## Ficha CitizenTech
 
-## Tecnologias
-
-| Camada | Tecnologia |
+| Campo | Informação |
 |---|---|
-| Linguagem | JavaScript (ES2022) + JSX |
-| Interface | React 18 |
-| Estilo | Tailwind CSS 3 com os tokens do guia visual (`Zestia.pdf`) em `tailwind.config.js`; fontes Space Grotesk (títulos) e Inter (texto) |
-| Build | Vite 5 |
-| Testes | Vitest 2 + Testing Library + jsdom |
-| Estado | Context API (`src/context.jsx`) + hook `useAsync` |
+| Nome | Zestia |
+| Cidade e bairro | Porto Alegre/RS; bairro-piloto ainda a definir. |
+| Cidadão beneficiado | Pessoas atendidas por cozinhas comunitárias e organizações receptoras. |
+| Problema | Dificuldade de compatibilizar ofertas de alimentos com necessidades das organizações. |
+| Funcionamento | Publicar, solicitar quantidades, aprovar/rejeitar e acompanhar indicadores. |
+| Partes | Interface React; API Python valida operações; PostgreSQL persiste; análise Python e protótipo IoT são módulos do projeto. Não há alegação de conexão IoT ao app. |
+| Repositório | https://github.com/Joao-Vitor-Freitas/Realimenta_Frontend |
+| Indicador | Kg solicitados/aprovados; aprovação não comprova entrega nem desperdício evitado. |
+| ODS | ODS 2 — Fome Zero; ODS 12 — Consumo e Produção Responsáveis. |
 
-## Como rodar
+Não há entrevistas locais ou impacto real documentados. Dados demonstrativos são fictícios.
 
-```bash
-npm install
-npm run dev      # http://localhost:5173
-npm test         # 14 testes (regras de negócio + fluxos de tela)
-npm run build    # gera a pasta dist/
+## Executar
+
+Requer Node.js 20+ e API Zestia em execução com migrações aplicadas.
+
+```sh
+npm ci
+npm run dev
+npm test
+npm run build
 ```
 
-### Variáveis de ambiente
+Configure `VITE_API_URL` no ambiente ou em arquivo local ignorado, apontando para a
+origem da API ou sua URL com `/api/v1`. Exemplo de desenvolvimento:
+`VITE_API_URL=http://localhost:8001/api/v1`. A API precisa permitir a origem do frontend
+em seu CORS. Sem URL configurada, a aplicação informa o erro; não há modo mock.
+Nunca use credenciais de banco, segredo JWT ou senha administrativa em variáveis VITE.
 
-Copie `.env.example` para `.env`:
+## Fluxo simples
 
-| Variável | Efeito |
+1. Crie uma conta e cadastre uma organização.
+2. Envie comprovação no aviso de verificação. Um administrador analisa em **Verificação**.
+3. Depois de verificada, publique um alimento em **Nova doação**.
+4. Outra conta, com outra organização verificada, solicita em **Explorar doações**.
+5. O doador aprova ou recusa em **Aprovações**. Consulte o histórico e o **Painel**.
+6. **Minha conta** permite restaurar organização arquivada, encerrar conta e verificar conexão.
+7. Na entrada, **Recuperar conta** solicita instruções e confirma o código recebido.
+
+Cada conta opera sua própria organização. Para demonstrar dois participantes, use duas
+sessões de navegador ou saia e entre com a outra conta. Não existe seletor “Atuando como”.
+O administrador é provisionado pelo operador no backend; não é escolhido no cadastro.
+A entrega real do e-mail depende da configuração privada do operador; 503 é exibido como
+indisponibilidade, sem fingir envio. Restaurar uma organização exige ausência de outra ativa.
+
+## Cobertura da API
+
+| Operação | Onde usar |
 |---|---|
-| `VITE_API_URL` vazia | **Modo demonstração**: API simulada, dados salvos no `localStorage` do navegador (aparece uma faixa de aviso no topo). |
-| `VITE_API_URL=http://localhost:8000` | Usa a API REST real. |
+| Registrar, login, consultar conta e logout | Entrada e Sair |
+| Encerrar conta | Minha conta |
+| Solicitar/confirmar recuperação | Recuperar conta na entrada |
+| Criar organização | Cadastro inicial |
+| Listar, consultar detalhe, editar e excluir organização | Organizações |
+| Listar arquivadas e restaurar | Minha conta; também acessível no cadastro inicial |
+| Enviar comprovação | Aviso de verificação ou Minha conta |
+| Ler evidência e registrar revisão | Verificação, somente ADMIN |
+| Criar, listar, consultar, editar e excluir alimento | Nova doação, ofertas, meus lotes e resumo da aprovação |
+| Saldo e existência de pedidos | GET /foods/{id}/availability, calculado no backend |
+| Criar, listar e consultar pedido | Ofertas, histórico e resumo da aprovação |
+| Aprovar/rejeitar pedido | Aprovações |
+| Resumo e detalhamento de métricas com filtros | Painel e tabela Por organização |
+| Saúde da API e banco | Minha conta → Verificar conexão |
 
-> Para a entrega (RNF-04), configure `VITE_API_URL`: dados do modo demonstração não ficam em API externa.
+O backend local inclui o endpoint de disponibilidade; publicar apenas o frontend sem essa
+atualização do backend produzirá 404 na consulta de saldo. Não é necessária nova migração.
 
-## Contrato esperado da API
+## Organização e decisões
 
-Todas as chamadas enviam o header `X-Organization-Id` (organização ativa). O back-end deve **validar permissões e quantidades no servidor** (RNF-07) e liberar esse header no CORS.
+React 18 + Vite + Tailwind. `components/` contém componentes reutilizáveis; `pages/` telas;
+`context.jsx` sessão e organização; `services/api.js` HTTP/token/conversão/erros;
+`services/data.js` paginação e preparação dos dados; `hooks/` carregamento e envio.
+O servidor decide propriedade, elegibilidade e limites de quantidade. O frontend usa os
+agregados de saldo do servidor, pois não pode consultar pedidos privados de terceiros.
+O resumo de aprovação não comprova entrega nem gera código autenticador de retirada.
 
-| Método e rota | Descrição |
-|---|---|
-| `GET/POST /organizations`, `PUT/DELETE /organizations/{id}` | CRUD de organizações (RN-01, RN-02) |
-| `GET /foods` | Lista com `donorName`, `availableKg` (= registrado − aprovado) e `hasRequests` |
-| `POST /foods`, `PUT/DELETE /foods/{id}` | CRUD de alimentos (RN-03 a RN-06) |
-| `GET /requests` | Solicitações com `foodName`, `donorOrganizationId`, `donorName`, `recipientName` (idealmente já filtradas pela organização do header) |
-| `POST /requests` | `{ foodId, quantityKg }` (RN-07, RN-08) |
-| `POST /requests/{id}/approve` e `/reject` | Somente o doador, somente `PENDING`, sem ultrapassar o registrado, com controle de concorrência (RN-09, RN-10) |
-| `GET /metrics?organizationId=&status=` | `organizations, registeredKg, requestedKg, approvedKg, pending, approved, rejected` (RN-12, RN-13) |
+## Validação e entrega pelo TODO
 
-Erros devem vir como `{ "detail": "mensagem" }` com o status HTTP adequado (400, 403, 404, 409).
+- React, mais de 8 componentes, separação de responsabilidades, CRUD, sessão,
+  formulários, loading/sucesso/erro/vazio e consumo da API estão implementados.
+- Testes de interface usam fetch simulado no contrato real, sem provar implantação.
+- Conferir manualmente celular/tablet/desktop, teclado, contraste e a configuração CORS
+  do ambiente real. Esses aceites não são substituídos pelo build.
+- O histórico consultado tem 12 commits; o TODO exige 15 commits significativos.
+  Não foram fabricados commits nem executados commit/push nesta tarefa.
+- Confirmar repositório privado e acesso do professor. Enviar link e ZIP em cada tarefa
+  de Front-end Design e Web Development no Teams. Publicação/acesso/envio não foram feitos.
+- Integrantes em INTEGRANTES.md; uso de IA em AI.md; interações em PROMPTS.md.
 
-## Estrutura
+## Resultado da verificação local — 19/11/2026
 
-```
-src/
-  components/   Sidebar (navegação), PageHeader, Button, Field, Badges (selo de validade,
-                origem, status, avatar), FoodCard, Modal, Toast, Alert, AsyncView, Icon, ErrorBoundary
-  pages/        Offers (Explorar doações), MyFoods (Meus lotes), Donate (Nova doação/edição),
-                Approvals (Aprovações), MyRequests (Minhas requisições), Dashboard, Organizations
-  format.js     formatação (kg, datas) e regra do selo de validade (< 24h, 24–72h, > 72h)
-  services/     api.js (acesso a dados) e mock.js (API simulada com as RN)
-  hooks/        useAsync.js (carregando / erro / dados, ignora respostas antigas)
-  context.jsx   organização ativa, lista de organizações e avisos (toast)
-  *.test.*      testes automatizados
-```
-
-Separação de responsabilidades (RNF-06): **apresentação** em `components/` e `pages/`, **lógica/estado** em `context.jsx` e `hooks/`, **acesso a dados** em `services/`.
-
-## Requisitos atendidos
-
-- **RF-01 a RF-08** e **RN-01 a RN-13** do backlog (as RN são aplicadas também pela API simulada e cobertas por testes).
-- **RNF-01 Responsividade:** barra lateral no desktop; no celular, topo + barra de navegação inferior com o botão “Nova doação”; tabelas rolam dentro do próprio container (focável pelo teclado).
-- **RNF-02 Acessibilidade:** landmarks (`header`, `nav` rotuladas, `main`, `aside`), hierarquia de títulos, listas e `article` nos cards; rótulos visíveis com dica e erro ligados por `aria-describedby` e foco no primeiro campo inválido; selos sempre com ícone + texto (nunca só cor); contraste AA nos selos e 3:1 nas bordas dos campos; alvos de toque ≥ 44 px; `aria-current` na navegação e `aria-pressed` nos filtros; regiões ao vivo fixas para avisos e contagem de resultados; foco preso no modal e movido ao título ao trocar de tela; respeita `prefers-reduced-motion`.
-- **RNF-05 Usabilidade:** validação nos formulários; estados de carregando (esqueleto), sucesso (aviso), erro (com "tentar novamente") e vazio; botões desabilitados durante o envio (sem cliques duplicados); botão "Atualizar" e recarga ao voltar para a janela; tela de erro amigável (`ErrorBoundary`).
-- **RNF-03:** 13 componentes reutilizáveis.
-
-## Limitações conhecidas
-
-- Não há autenticação: a organização ativa é escolhida em "Atuando como" e enviada em `X-Organization-Id`. Em produção, trocar por login/token.
-- O back-end não faz parte deste repositório.
-- Nesta versão, solicitações aprovadas **não** significam entrega confirmada (fora do escopo do MVP, RN-13).
+14 testes do frontend passaram e o build de produção passou, em cópia isolada sem
+carregar arquivos privados de ambiente. O backend passou no gate completo com 391 testes,
+nenhum ignorado, cobertura 99%, scanner, lint, dependências e round trip de migrações.
+Isso não comprova implantação, recebimento de e-mail ou execução em navegadores reais.

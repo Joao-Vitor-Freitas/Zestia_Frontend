@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { api } from '../services/api'
+import { getAll } from '../services/data'
 import { loadMetrics } from '../services/data'
 import { useApp } from '../context'
 import { useAsync } from '../hooks/useAsync'
@@ -16,6 +18,7 @@ export default function Dashboard() {
   const [o, setO] = useState(''), [s, setS] = useState('')
   const ids = useId()
   const { data, loading, error, reload } = useAsync(() => loadMetrics(o, s), [o, s])
+  const breakdown = useAsync(() => getAll(`/metrics/organizations?organizationId=${o}&status=${s}`), [o, s])
   const groups = data && [
     ['Alimentos', [['Alimento registrado (kg)', data.registeredKg], ['Alimento solicitado (kg)', data.requestedKg], ['Alimento aprovado (kg)', data.approvedKg]]],
     ['Requisições', [['Requisições pendentes', data.pending], ['Requisições aprovadas', data.approved], ['Requisições recusadas', data.rejected]]],
@@ -24,7 +27,7 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader title="Painel de indicadores" sub="Números calculados a partir dos registros da rede."
-        actions={<Button variant="sec" aria-label="Atualizar indicadores" onClick={reload}><Icon name="refresh" size={18} />Atualizar</Button>} />
+        actions={<Button variant="sec" aria-label="Atualizar indicadores" onClick={() => { reload(); breakdown.reload() }}><Icon name="refresh" size={18} />Atualizar</Button>} />
       <div role="group" aria-label="Filtros do painel" className="card mb-8 grid gap-4 sm:grid-cols-2">
         <Field as="select" label="Organização" value={o} onChange={e => setO(e.target.value)}>
           <option value="">Todas</option>{orgs.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
@@ -48,6 +51,12 @@ export default function Dashboard() {
               </dl>
             </section>
           ))}
+          <section className="card overflow-x-auto" aria-label="Indicadores por organização" tabIndex={0}>
+            <h2 className="mb-4 text-xl">Por organização</h2>
+            <AsyncView data={breakdown.data} loading={breakdown.loading} error={breakdown.error} onRetry={breakdown.reload} empty={!breakdown.data?.length} emptyText="Nenhuma organização encontrada.">
+              <table><caption className="sr-only">Quantidades por papel da organização, em kg</caption><thead><tr><th scope="col">Organização</th><th scope="col">Cadastrados (kg)</th><th scope="col">Aprovados como doadora (kg)</th><th scope="col">Aprovados como destinatária (kg)</th></tr></thead><tbody>{breakdown.data?.map(row => <tr key={row.organizationId}><th scope="row">{row.organizationName}</th><td>{num(row.registeredFoodKg)}</td><td>{num(row.donationRequests.approvedFoodKg)}</td><td>{num(row.recipientRequests.approvedFoodKg)}</td></tr>)}</tbody></table>
+            </AsyncView>
+          </section>
           <p className="hint">“Aprovado” não significa entregue ou consumido.</p>
         </div>
       </AsyncView>

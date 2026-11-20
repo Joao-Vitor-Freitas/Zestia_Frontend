@@ -18,23 +18,16 @@ export async function getAll(path) {
 const r3 = n => Math.round(n * 1000) / 1000
 const nameOf = orgs => id => orgs.find(o => o.id === id)?.name || 'Organização removida'
 
-/**
- * Alimentos + requisições da organização logada, com os campos que as telas usam:
- *  - alimento: donorName, approvedKg, availableKg, hasRequests
- *  - requisição: foodName, donorName, recipientName
- * Saldo: nos lotes da própria organização é exato (o doador vê todas as requisições deles).
- * Nos lotes de outras organizações é uma estimativa (a API não mostra aprovações de terceiros);
- * a API recusa pedidos acima do saldo real com "insufficient_food".
- */
+// Saldo agregado pelo servidor, incluindo aprovações a terceiros sem expor o histórico privado.
 export async function loadNetwork(orgs) {
   const [foods, reqs] = await Promise.all([getAll('/foods'), getAll('/requests')])
   const name = nameOf(orgs)
-  const byFood = id => reqs.filter(r => r.foodId === id)
-  const enrichedFoods = foods.map(f => {
-    const rs = byFood(f.id)
-    const approvedKg = r3(rs.filter(r => r.status === 'APPROVED').reduce((s, r) => s + r.quantityKg, 0))
-    return { ...f, donorName: name(f.donorOrganizationId), approvedKg, availableKg: r3(f.quantityKg - approvedKg), hasRequests: rs.length > 0 }
-  })
+  const enrichedFoods = await Promise.all(foods.map(async f => {
+    const availability = await api.get(`/foods/${f.id}/availability`)
+    return { ...f, donorName: name(f.donorOrganizationId),
+      approvedKg: r3(f.quantityKg - availability.availableKg),
+      availableKg: availability.availableKg, hasRequests: availability.hasRequests }
+  }))
   const foodName = id => foods.find(f => f.id === id)?.name || 'Alimento removido'
   const enrichedReqs = reqs.map(r => ({ ...r, foodName: foodName(r.foodId), donorName: name(r.donorOrganizationId), recipientName: name(r.recipientOrganizationId) }))
   return [enrichedFoods, enrichedReqs]

@@ -1,3 +1,4 @@
+import Account from './Account'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../services/api'
 import { useApp } from '../context'
@@ -51,6 +52,7 @@ export default function OrgSetup() {
           Conta: {account?.email}. <button type="button" className="link" onClick={logout}>Sair</button>
         </p>
       </div>
+      <details className="mt-6"><summary className="cursor-pointer font-semibold">Restaurar organização ou gerenciar conta</summary><Account /></details>
     </main>
   )
 }

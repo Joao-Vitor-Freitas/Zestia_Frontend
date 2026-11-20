@@ -1,6 +1,7 @@
 // Camada de acesso a dados da zestia-api (VITE_API_URL, ex.: http://localhost:8001/api/v1).
 // Responsabilidades: token de login, conversão camelCase <-> snake_case e tradução dos erros.
-const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+const configured = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '')
+const BASE = configured ? configured.replace(/(?:\/api\/v1)?$/, '/api/v1') : ''
 
 // --- Sessão (token JWT) ---------------------------------------------------
 const TOKEN_KEY = 'token'
@@ -72,7 +73,7 @@ const MESSAGES = {
 const errorMessage = (body, status) => {
   const e = body?.error
   if (e) return MESSAGES[e.code] || e.message || `Erro ${status}`
-  return body?.detail || `Erro ${status}`
+  return (Array.isArray(body?.detail) ? body.detail.map(x => x.msg).join('; ') : body?.detail) || `Erro ${status}`
 }
 
 // --- HTTP ------------------------------------------------------------------
@@ -82,7 +83,7 @@ async function http(method, path, body) {
   let r
   if (!BASE) throw new Error('API não configurada: defina VITE_API_URL no arquivo .env do frontend.')
   try {
-    r = await fetch(BASE + toApiPath(path), { method, headers, body: body && JSON.stringify(toApi(body)) })
+    r = await fetch((path.startsWith('/health/') ? BASE.replace(/\/api\/v1$/, '') : BASE) + toApiPath(path), { method, headers, body: body && JSON.stringify(toApi(body)) })
   } catch {
     throw new Error('Não foi possível conectar à API. Verifique a URL configurada e sua conexão.')
   }

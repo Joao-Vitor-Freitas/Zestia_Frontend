@@ -125,7 +125,7 @@ export default function Offers({ go }) {
             <div className="col-span-2"><dt className="sr-only">Prazo</dt><dd><ExpirySeal date={sel.expirationDate} /></dd></div>
           </dl>
           <form onSubmit={submit} noValidate className="grid gap-5">
-            <Field label="Quantidade desejada (kg)" type="number" inputMode="decimal" min="0" step="0.1" required
+            <Field label="Quantidade desejada (kg)" type="number" inputMode="decimal" min="0" step="0.001" required
               hint={`Até ${fmtKg(sel.availableKg)} (saldo estimado; se outra organização já tiver sido aprovada, o sistema avisa). O doador revisa o pedido antes de liberar a retirada.`}
               value={qty} onChange={e => setQty(e.target.value)} error={err} />
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

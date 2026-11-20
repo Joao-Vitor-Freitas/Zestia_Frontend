@@ -10,6 +10,7 @@ import Approvals from './pages/Approvals'
 import MyRequests from './pages/MyRequests'
 import Dashboard from './pages/Dashboard'
 import Organizations from './pages/Organizations'
+import Account from './pages/Account'
 import Login from './pages/Login'
 import OrgSetup from './pages/OrgSetup'
 import Receipt from './pages/Receipt'
@@ -25,6 +26,7 @@ const ALL_PAGES = {
   approvals: { label: 'Aprovações', icon: 'check', C: Approvals, org: true },
   sent: { label: 'Minhas requisições', icon: 'clipboard', C: MyRequests, org: true },
   verify: { label: 'Verificação', icon: 'shield', C: Verification, sec: true, admin: true },
+  account: { label: 'Minha conta', icon: 'users', C: Account, sec: true },
   dashboard: { label: 'Painel', icon: 'chart', C: Dashboard, sec: true },
   orgs: { label: 'Organizações', icon: 'users', C: Organizations, sec: true },
   receipt: { label: 'Comprovante de retirada', C: Receipt, hidden: true, parent: 'sent', org: true }, // fora do menu
